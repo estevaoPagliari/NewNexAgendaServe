@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tabela User Estabelecimento
+model UserEstabelecimento {
+  id                   Int                    @id @default(autoincrement())
+  nome                 String
+  email                String                 @unique
+  senha                String
+  cpf                  String                 @unique
+  telefone             Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  Endereco             Endereco[]
+  TipoServico          TipoServico[]
+  Recursos             Recurso[]
+  Agenda               Agenda[]
+  HorarioFuncionamento HorarioFuncionamento[]
+}
+
+// Tabela Recurso
+model Recurso {
+  id                Int                 @id @default(autoincrement())
+  nome              String
+  estabelecimentoId Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  Estabelecimento   UserEstabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  Agenda            Agenda[]
+}
+
+// Tabela User Cliente
+model UserCliente {
+  id        Int        @id @default(autoincrement())
+  nome      String
+  email     String     @unique
+  senha     String
+  cpf       String     @unique
+  telefone  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Endereco  Endereco[]
+  Agenda    Agenda[]
+}
+
+// Tabela Endereco
+model Endereco {
+  id               Int                  @id @default(autoincrement())
+  estado           String
+  cidade           String
+  rua              String
+  numero           String
+  complemento      String?
+  cep              String
+  usuarioEmpresaId Int?
+  clienteId        Int?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  UsuarioEmpresa   UserEstabelecimento? @relation(fields: [usuarioEmpresaId], references: [id], onDelete: Cascade)
+  Cliente          UserCliente?         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+}
+
+// Tabela TipoServico
+model TipoServico {
+  id                    Int                 @id @default(autoincrement())
+  nome                  String
+  tempoServico          Int
+  valorServico          Int
+  UserEstabelecimentoId Int
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  UserEstabelecimento   UserEstabelecimento @relation(fields: [UserEstabelecimentoId], references: [id], onDelete: Cascade)
+  Agenda                Agenda[]
+}
+
+// Tabela Agenda
+model Agenda {
+  id                Int                 @id @default(autoincrement())
+  dia               Int
+  mes               Int
+  ano               Int
+  horario           String
+  tipoServicoId     Int
+  estabelecimentoId Int
+  clienteId         Int
+  recursoId         Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  TipoServico       TipoServico         @relation(fields: [tipoServicoId], references: [id])
+  Estabelecimento   UserEstabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  Cliente           UserCliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  Recurso           Recurso             @relation(fields: [recursoId], references: [id])
+}
+
+// Tabela Horario Funcionamento
+model HorarioFuncionamento {
+  id                  Int                 @id @default(autoincrement())
+  horarioAbertura     String
+  horarioAlmocoInicio String
+  horarioAlmocoFim    String
+  horarioFechamento   String
+  estabelecimentoId   Int
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  Estabelecimento     UserEstabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+}
