@@ -28,7 +28,9 @@ export async function loginRoutes(app: FastifyInstance) {
           .status(200)
           .send({ message: 'credenciaisCorretas: true', token })
       } else {
-        return reply.status(401).send({ message: 'credenciaisCorretas: false' })
+        return reply.status(401).send({
+          message: 'Email ou senha incorretos, por favor tente novamente.',
+        })
       }
     } catch (error) {
       console.error('Error during login:', error)
@@ -61,7 +63,9 @@ export async function loginRoutes(app: FastifyInstance) {
           .status(200)
           .send({ message: 'credenciaisCorretas: true', token })
       } else {
-        return reply.status(401).send({ message: 'credenciaisCorretas: false' })
+        return reply.status(401).send({
+          message: 'Email ou senha incorretos, por favor tente novamente.',
+        })
       }
     } catch (error) {
       console.error('Error during login:', error)
