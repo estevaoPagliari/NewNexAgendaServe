@@ -356,6 +356,9 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         where: {
           telefone: phone,
         },
+        include: {
+          Agenda: true,
+        },
       })
 
       const user = (await result).find((user) => user.telefone === phone)
@@ -365,6 +368,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           nome: user?.nome,
           email: user?.email,
           telefone: user?.telefone,
+          agenda: [user?.Agenda],
           texto: 'Usuário encontrado no banco de dados',
         })
       } else {
