@@ -344,6 +344,42 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
     }
   })
 
+  app.post('/devnex', async (request, reply) => {
+    try {
+      // Validar o corpo da solicitação
+      const bodySchema = z.object({
+        phone: z.string().regex(/^\d{11}$/), // Validar se é uma string com exatamente 11 números
+      })
+      const { phone } = bodySchema.parse(request.body)
+
+      const result = prisma.userCliente.findMany({
+        where: {
+          telefone: phone,
+        },
+      })
+
+      const user = (await result).find((user) => user.telefone === phone)
+      if (result && (await result).length > 0) {
+        return reply.send({
+          message: 'Pessoal Cadastrada',
+          nome: user?.nome,
+          email: user?.email,
+          telefone: user?.telefone,
+          texto: 'Usuário encontrado no banco de dados',
+        })
+      } else {
+        return reply.send({
+          message: 'Usuário não cadastrado',
+          texto: 'Usuário encontrado no banco de dados',
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      return { message: 'Error, telefone inválido' }
+    }
+    // return { message: 'Bem Vindo a DevNex POST...🚀🚀🚀 ' }
+  })
+
   app.patch('/agendaservico/:idagenda', async (request, reply) => {
     try {
       // Validar o corpo da solicitação
