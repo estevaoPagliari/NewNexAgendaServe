@@ -468,7 +468,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         // Concatenar os detalhes da agenda
         const agendaText = upcomingAgenda
           ?.map((evento) => {
-            return `${evento.dia}/${evento.mes}/${evento.ano} - ${evento.horario}, no campo: ${evento.Recurso.nome}`
+            return ` ${evento.dia}/${evento.mes}/${evento.ano} - ${evento.horario}, no campo: ${evento.Recurso.nome} \n`
           })
           .join() // Default para string vazia se undefined
 
@@ -477,7 +477,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           nome: user?.nome,
           email: user?.email,
           telefone: user?.telefone,
-          agenda: upcomingAgenda,
+          // agenda: upcomingAgenda,
           texto: agendaText,
         })
       } else {
