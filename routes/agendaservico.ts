@@ -457,7 +457,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       } else {
         return reply.send({
           message: 'Usuário não cadastrado',
-          texto: 'Usuário encontrado no banco de dados',
+          texto: 'Usuário não encontrado no banco de dados',
         })
       }
     } catch (error) {
