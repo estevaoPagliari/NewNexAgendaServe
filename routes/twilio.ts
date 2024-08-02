@@ -6,8 +6,6 @@ import { prisma } from '../lib/prisma'
 export async function routertwilio(app: FastifyInstance) {
   app.post('/twilio', async (request, reply) => {
     // Substitua os valores de ambiente apropriados
-    const accountSid = 'ACf34837138f96d911c518b594f001e860'
-    const authToken = 'fef3cec1788e3a770f525c782be5a117'
 
     const bodySchema = z.object({
       phone: z.string().regex(/^\d{11}$/), // Validar se é uma string com exatamente 11 números
@@ -15,14 +13,17 @@ export async function routertwilio(app: FastifyInstance) {
     })
     const { phone, cSid } = bodySchema.parse(request.body)
 
-    if (!accountSid || !authToken) {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       reply.status(500).send({
         error: 'Twilio credentials are not set in environment variables.',
       })
       return
     }
 
-    const client = new Twilio(accountSid, authToken)
+    const client = new Twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+    )
 
     const message = await client.messages.create({
       contentSid: cSid,

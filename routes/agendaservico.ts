@@ -465,13 +465,20 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           return eventDate >= today
         })
 
+        // Concatenar os detalhes da agenda
+        const agendaText = upcomingAgenda
+          ?.map((evento) => {
+            return `${evento.dia}/${evento.mes}/${evento.ano} - ${evento.horario}, no campo: ${evento.Recurso.nome}`
+          })
+          .join() // Default para string vazia se undefined
+
         return reply.send({
-          message: 'Pessoal Cadastrada',
+          message: 'Pessoa Cadastrada',
           nome: user?.nome,
           email: user?.email,
           telefone: user?.telefone,
           agenda: upcomingAgenda,
-          texto: 'Usuário encontrado no banco de dados',
+          texto: agendaText,
         })
       } else {
         return reply.send({
