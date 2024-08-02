@@ -426,7 +426,6 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         .send({ message: 'Erro ao buscar agendas de serviço.' })
     }
   })
-
   app.post('/devnex', async (request, reply) => {
     try {
       // Validar o corpo da solicitação
@@ -440,31 +439,50 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           telefone: phone,
         },
         include: {
-          Agenda: true,
+          Agenda: {
+            select: {
+              dia: true,
+              mes: true,
+              ano: true,
+              horario: true,
+              Recurso: {
+                select: {
+                  nome: true,
+                },
+              },
+            },
+          },
         },
       })
 
       const user = (await result).find((user) => user.telefone === phone)
+
       if (result && (await result).length > 0) {
+        // Filtrar a agenda para incluir apenas eventos a partir de hoje
+        const today = new Date()
+        const upcomingAgenda = user?.Agenda.filter((evento) => {
+          const eventDate = new Date(evento.ano, evento.mes - 1, evento.dia)
+          return eventDate >= today
+        })
+
         return reply.send({
           message: 'Pessoal Cadastrada',
           nome: user?.nome,
           email: user?.email,
           telefone: user?.telefone,
-          agenda: [user?.Agenda],
+          agenda: upcomingAgenda,
           texto: 'Usuário encontrado no banco de dados',
         })
       } else {
         return reply.send({
           message: 'Usuário não cadastrado',
-          texto: 'Usuário não encontrado no banco de dados',
+          texto: '',
         })
       }
     } catch (error) {
       console.error(error)
       return { message: 'Error, telefone inválido' }
     }
-    // return { message: 'Bem Vindo a DevNex POST...🚀🚀🚀 ' }
   })
 
   app.post('/bloqueardia', async (request, reply) => {
