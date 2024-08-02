@@ -1,6 +1,9 @@
+/* eslint-disable no-unmodified-loop-condition */
+/* eslint-disable prefer-const */
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import { z } from 'zod'
+import axios from 'axios'
 
 export async function agendaservicoRoutes(app: FastifyInstance) {
   app.get('/agendaservico', async (request, reply) => {
@@ -222,6 +225,17 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         },
       })
 
+      // Chamar a rota /twilioid apenas se o agendamento foi criado com sucesso
+      const codigo = 'HX8581744ba005c88e35138e27437030bd' // Substitua com o código real, se necessário
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const twilioResponse = await axios.post(
+        `${process.env.API_BASE_URL}/twilioid`,
+        {
+          id: clienteId,
+          cSid: codigo,
+        },
+      )
+
       console.log(verificar)
       // Enviar resposta com o novo usuário criado
       return reply.code(201).send(newAgenda)
@@ -382,6 +396,111 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       return { message: 'Error, telefone inválido' }
     }
     // return { message: 'Bem Vindo a DevNex POST...🚀🚀🚀 ' }
+  })
+
+  app.post('/bloqueardia', async (request, reply) => {
+    try {
+      const bodySchema = z.object({
+        dia: z.number(),
+        mes: z.number(),
+        ano: z.number(),
+        estabelecimentoId: z.number(),
+        tipoServicoId: z.number(),
+        clienteId: z.number(),
+        recursoId: z.number(),
+        recursoId2: z.number(),
+      })
+
+      const {
+        dia,
+        mes,
+        ano,
+        estabelecimentoId,
+        tipoServicoId,
+        clienteId,
+        recursoId,
+        recursoId2,
+      } = bodySchema.parse(request.body)
+
+      const existingAgendas = await prisma.agenda.findMany({
+        where: {
+          dia,
+          mes,
+          ano,
+          estabelecimentoId,
+          OR: [{ recursoId }, { recursoId: recursoId2 }],
+        },
+      })
+
+      if (existingAgendas.length > 0) {
+        reply
+          .status(400)
+          .send({ message: 'Já existem agendamentos para este dia.' })
+        return
+      }
+
+      const resulthorario = await prisma.horarioFuncionamento.findMany({
+        where: { id: 1 },
+      })
+
+      if (resulthorario.length > 0) {
+        const horarioAbertura = resulthorario[0].horarioAbertura // String "HH:mm"
+        const horarioFechamento = resulthorario[0].horarioFechamento // String "HH:mm"
+
+        // Converte strings para objetos Date
+        const [horaAbertura, minutoAbertura] = horarioAbertura
+          .split(':')
+          .map(Number)
+        const [horaFechamento, minutoFechamento] = horarioFechamento
+          .split(':')
+          .map(Number)
+
+        const currentHorario = new Date()
+        currentHorario.setHours(horaAbertura, minutoAbertura, 0, 0)
+
+        const fimHorario = new Date()
+        fimHorario.setHours(horaFechamento, minutoFechamento, 0, 0)
+
+        while (currentHorario < fimHorario) {
+          const horarioString = currentHorario.toTimeString().substring(0, 5) // Converte para string no formato HH:mm
+
+          const newAgenda = await prisma.agenda.create({
+            data: {
+              dia,
+              mes,
+              ano,
+              horario: horarioString,
+              estabelecimentoId,
+              tipoServicoId,
+              clienteId,
+              recursoId,
+            },
+          })
+
+          const newAgenda2 = await prisma.agenda.create({
+            data: {
+              dia,
+              mes,
+              ano,
+              horario: horarioString,
+              estabelecimentoId,
+              tipoServicoId,
+              clienteId,
+              recursoId: recursoId2,
+            },
+          })
+          console.log(newAgenda2, newAgenda)
+          currentHorario.setHours(currentHorario.getHours() + 1) // Incrementa uma hora
+        }
+
+        reply.send({ message: 'Horários bloqueados com sucesso.' })
+      } else {
+        reply.status(404).send({ message: 'Horário não encontrado.' })
+      }
+    } catch (error) {
+      console.error(error)
+      reply.status(500).send({ message: 'Erro no servidor.', error })
+    }
   })
 
   app.patch('/agendaservico/:idagenda', async (request, reply) => {
