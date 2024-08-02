@@ -3,7 +3,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import { z } from 'zod'
-// import axios from 'axios'
+import axios from 'axios'
 
 export async function agendaservicoRoutes(app: FastifyInstance) {
   app.get('/agendaservico', async (request, reply) => {
@@ -296,9 +296,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         },
       })
 
-      // Chamar a rota /twilioid apenas se o agendamento foi criado com sucesso
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      /**
       const twilioResponse = await axios.post(
         `${process.env.API_BASE_URL}/twilioid`,
         {
@@ -307,7 +305,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       )
 
       console.log(verificar)
-       */
+
       // Enviar resposta com o novo usuário criado
       return reply.code(201).send(newAgenda)
     } catch (error) {
