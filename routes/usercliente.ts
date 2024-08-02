@@ -121,9 +121,13 @@ export async function userCliRoutes(app: FastifyInstance) {
         error.meta?.target?.includes('cpf')
       ) {
         return reply.code(400).send({ message: 'CPF já está em uso.' })
-      } else {
-        console.error('Erro ao criar usuário:', error)
+      } else if (
+        error.code === 'P2002' &&
+        error.meta?.target?.includes('telefone')
+      ) {
+        return reply.code(400).send({ message: 'Telefone já está em uso.' })
         // Enviar resposta de erro genérico com código 400
+      } else {
         return reply.code(400).send({ message: 'Erro ao criar usuário.' })
       }
     }

@@ -3,7 +3,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import { z } from 'zod'
-import axios from 'axios'
+// import axios from 'axios'
 
 export async function agendaservicoRoutes(app: FastifyInstance) {
   app.get('/agendaservico', async (request, reply) => {
@@ -106,6 +106,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
 
   app.post('/agendaservicopost', async (request, reply) => {
     const bodySchema = z.object({
+      id: z.number().optional(),
       nome: z.string().optional(),
       cpf: z.string().optional(),
       horario: z.string().optional(),
@@ -116,9 +117,8 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
     })
 
     try {
-      const { nome, cpf, horario, dia, mes, ano, recursoId } = bodySchema.parse(
-        request.body,
-      )
+      const { id, nome, cpf, horario, dia, mes, ano, recursoId } =
+        bodySchema.parse(request.body)
 
       const users = await prisma.agenda.findMany({
         where: {
@@ -128,6 +128,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           horario,
           recursoId,
           Cliente: {
+            id,
             nome,
             cpf,
           },
@@ -136,10 +137,80 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           createdAt: 'desc',
         },
         include: {
-          TipoServico: true,
-          Estabelecimento: true,
-          Recurso: true,
-          Cliente: true,
+          TipoServico: {
+            select: {
+              nome: true,
+              tempoServico: true,
+            },
+          },
+          Estabelecimento: {
+            select: {
+              nome: true, // Substitua 'nome' pelos campos que você deseja incluir
+              // Adicione outros campos que você quer incluir
+            },
+          },
+          Recurso: {
+            select: {
+              nome: true,
+            },
+          },
+          Cliente: {
+            select: {
+              nome: true,
+            },
+          },
+        },
+      })
+
+      return reply.code(200).send(users)
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error)
+      if (error instanceof z.ZodError) {
+        return reply
+          .code(400)
+          .send({ message: 'Erro de validação.', errors: error.errors })
+      }
+      return reply.code(500).send({ message: 'Erro ao buscar usuários.' })
+    }
+  })
+  app.post('/agendaservicopostcliente', async (request, reply) => {
+    const bodySchema = z.object({
+      id: z.number(),
+    })
+
+    try {
+      const { id } = bodySchema.parse(request.body)
+
+      const users = await prisma.agenda.findMany({
+        where: {
+          clienteId: id,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          TipoServico: {
+            select: {
+              nome: true,
+              tempoServico: true,
+            },
+          },
+          Estabelecimento: {
+            select: {
+              nome: true, // Substitua 'nome' pelos campos que você deseja incluir
+              // Adicione outros campos que você quer incluir
+            },
+          },
+          Recurso: {
+            select: {
+              nome: true,
+            },
+          },
+          Cliente: {
+            select: {
+              nome: true,
+            },
+          },
         },
       })
 
@@ -226,17 +297,17 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       })
 
       // Chamar a rota /twilioid apenas se o agendamento foi criado com sucesso
-      const codigo = 'HX8581744ba005c88e35138e27437030bd' // Substitua com o código real, se necessário
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      /**
       const twilioResponse = await axios.post(
         `${process.env.API_BASE_URL}/twilioid`,
         {
           id: clienteId,
-          cSid: codigo,
         },
       )
 
       console.log(verificar)
+       */
       // Enviar resposta com o novo usuário criado
       return reply.code(201).send(newAgenda)
     } catch (error) {

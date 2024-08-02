@@ -90,6 +90,9 @@ export async function userEstRoutes(app: FastifyInstance) {
           horarioAlmocoInicio: z.string(),
           horarioAlmocoFim: z.string(),
           horarioFechamento: z.string(),
+          horarioAberturasabado: z.string(),
+          horarioAlmocosabado: z.string(),
+          horarioFechamentosabado: z.string(),
         }),
       })
 
@@ -127,6 +130,10 @@ export async function userEstRoutes(app: FastifyInstance) {
               horarioAlmocoInicio: horariofuncionamento.horarioAlmocoInicio,
               horarioAlmocoFim: horariofuncionamento.horarioAlmocoFim,
               horarioFechamento: horariofuncionamento.horarioFechamento,
+              horarioAberturasabado: horariofuncionamento.horarioAberturasabado,
+              horarioAlmocosabado: horariofuncionamento.horarioAlmocosabado,
+              horarioFechamentosabado:
+                horariofuncionamento.horarioFechamentosabado,
             },
           },
         },

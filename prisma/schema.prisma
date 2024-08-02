@@ -45,7 +45,7 @@ model UserCliente {
   email     String     @unique
   senha     String
   cpf       String     @unique
-  telefone  String
+  telefone  String     @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   Endereco  Endereco[]
@@ -103,13 +103,16 @@ model Agenda {
 
 // Tabela Horario Funcionamento
 model HorarioFuncionamento {
-  id                  Int                 @id @default(autoincrement())
-  horarioAbertura     String
-  horarioAlmocoInicio String
-  horarioAlmocoFim    String
-  horarioFechamento   String
-  estabelecimentoId   Int
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  Estabelecimento     UserEstabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  id                      Int                 @id @default(autoincrement())
+  horarioAbertura         String
+  horarioAlmocoInicio     String
+  horarioAlmocoFim        String
+  horarioFechamento       String
+  horarioAberturasabado   String
+  horarioAlmocosabado     String
+  horarioFechamentosabado String
+  estabelecimentoId       Int
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  Estabelecimento         UserEstabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
 }

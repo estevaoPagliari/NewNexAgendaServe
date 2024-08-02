@@ -34,3 +34,5 @@ yarn-error.*cls
 
 # typescript
 *.tsbuildinfo
+# Ignorar arquivos de configuração local
+.env
