@@ -240,4 +240,44 @@ export async function routertwilio(app: FastifyInstance) {
       reply.code(403).send('Forbidden')
     }
   })
+
+  app.post('/facebook', async (request, reply) => {
+    const bodySchema = z.object({
+      phone: z.string().regex(/^\d{11}$/), // Validar se é uma string com exatamente 11 números
+      cSid: z.string(), // Nome do template a ser enviado
+    })
+    const { phone, cSid } = bodySchema.parse(request.body)
+
+    try {
+      const response = await axios.post(
+        `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: `55${phone}`, // Inclui o código do país
+          type: 'template',
+          template: {
+            name: cSid,
+            language: {
+              code: 'pt_BR',
+            },
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+
+      reply.status(200).send({
+        message: response.data,
+      })
+    } catch (error) {
+      console.error(error)
+      reply.status(500).send({
+        error: 'Failed to send message via Facebook API',
+      })
+    }
+  })
 }
