@@ -123,14 +123,9 @@ export async function routertwilio(app: FastifyInstance) {
       })
     }
   })
-
+  /** */
   app.post('/webhook', async (request, reply) => {
     // Schema para validação dos query parameters
-    const querySchema = z.object({
-      'hub.mode': z.string(),
-      'hub.verify_token': z.string(),
-      'hub.challenge': z.string(),
-    })
 
     // Schema para validação do corpo da requisição
     const bodySchema = z.object({
@@ -159,20 +154,6 @@ export async function routertwilio(app: FastifyInstance) {
     })
 
     // Verificação e resposta de subscrição
-    const query = querySchema.safeParse(request.query)
-    if (query.success) {
-      const {
-        'hub.mode': mode,
-        'hub.verify_token': token,
-        'hub.challenge': challenge,
-      } = query.data
-
-      if (mode === 'subscribe' && token === verifyToken) {
-        return reply.code(200).send(challenge)
-      } else {
-        return reply.code(403).send('Forbidden')
-      }
-    }
 
     // Processamento das mensagens
     const body = bodySchema.safeParse(request.body)
@@ -228,5 +209,35 @@ export async function routertwilio(app: FastifyInstance) {
     }
 
     return reply.code(400).send('Invalid request data')
+  })
+
+  app.get('/webhook', (request, reply) => {
+    // Definindo o esquema para validação dos parâmetros da consulta
+    const querySchema = z.object({
+      'hub.mode': z.string(),
+      'hub.verify_token': z.string(),
+      'hub.challenge': z.string(),
+    })
+
+    // Validando os parâmetros da consulta
+    const queryValidation = querySchema.safeParse(request.query)
+    if (!queryValidation.success) {
+      reply.code(400).send('Invalid query parameters')
+      return
+    }
+
+    const {
+      'hub.mode': mode,
+      'hub.verify_token': token,
+      'hub.challenge': challenge,
+    } = queryValidation.data
+
+    // Verifica o modo e o token de verificação
+    if (mode === 'subscribe' && token === verifyToken) {
+      reply.code(200).send(challenge)
+      console.log('Webhook verified successfully!')
+    } else {
+      reply.code(403).send('Forbidden')
+    }
   })
 }
