@@ -503,6 +503,8 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
             'America/Sao_Paulo',
           )
           eventDate.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
+          console.log('Dia server :' + today)
+          console.log('Dia Agendado' + eventDate)
           return eventDate >= today
         })
 
