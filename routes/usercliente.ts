@@ -111,9 +111,13 @@ export async function userCliRoutes(app: FastifyInstance) {
   app.get('/usercliente', async (request, reply) => {
     try {
       const users = await prisma.userCliente.findMany({
-        include: {
-          Endereco: true,
-          Agenda: true,
+        select: {
+          nome: true,
+          cpf: true,
+          telefone: true,
+          email: true,
+          habilitado: true,
+          id: true,
         },
       })
       return reply.code(200).send(users)
@@ -197,6 +201,7 @@ export async function userCliRoutes(app: FastifyInstance) {
           senha,
           cpf,
           telefone,
+          habilitado: true,
           Endereco: {
             create: {
               estado: endereco.estado,
@@ -259,11 +264,11 @@ export async function userCliRoutes(app: FastifyInstance) {
         nome: z.string().optional(),
         senha: z.string().optional(),
         cpf: z.string().optional(),
+        habilitado: z.boolean().optional(),
         telefone: z.string().optional(),
       })
-      const { email, nome, telefone, cpf, senha } = bodySchema.parse(
-        request.body,
-      )
+      const { email, nome, habilitado, telefone, cpf, senha } =
+        bodySchema.parse(request.body)
 
       // Atualizar o usuário com base no ID fornecido
       const updatedUser = await prisma.userCliente.update({
@@ -276,16 +281,74 @@ export async function userCliRoutes(app: FastifyInstance) {
           telefone,
           cpf,
           senha,
+          habilitado,
         },
       })
 
       // Verificar se o usuário foi atualizado com sucesso
+
+      // Enviar resposta com o usuário atualizado
       if (!updatedUser) {
         return reply.code(404).send({ message: 'Usuário não encontrado.' })
       }
 
+      // Enviar resposta com a mensagem de sucesso e o usuário atualizado
+      return reply
+        .code(200)
+        .send({ message: 'Usuário atualizado com sucesso.' })
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error)
+      // Enviar resposta de erro com código 400
+      return reply.code(400).send({ message: 'Erro ao atualizar usuário.' })
+    }
+  })
+
+  app.patch('/userclientehablitada/:cpf', async (request, reply) => {
+    try {
+      // Validar parâmetros da solicitação
+      const paramsSchema = z.object({
+        cpf: z.string(),
+      })
+      const { cpf } = paramsSchema.parse(request.params)
+
+      // Validar corpo da solicitação
+      const bodySchema = z.object({
+        email: z.string().email().optional(), // Validar se é um email válido
+        nome: z.string().optional(),
+        senha: z.string().optional(),
+        habilitado: z.boolean().optional(),
+        telefone: z.string().optional(),
+      })
+      const { email, nome, habilitado, telefone, senha } = bodySchema.parse(
+        request.body,
+      )
+
+      // Atualizar o usuário com base no ID fornecido
+      const updatedUser = await prisma.userCliente.update({
+        where: {
+          cpf,
+        },
+        data: {
+          email,
+          nome,
+          telefone,
+          cpf,
+          senha,
+          habilitado,
+        },
+      })
+
+      // Verificar se o usuário foi atualizado com sucesso
+
       // Enviar resposta com o usuário atualizado
-      return reply.code(200).send(updatedUser)
+      if (!updatedUser) {
+        return reply.code(404).send({ message: 'Usuário não encontrado.' })
+      }
+
+      // Enviar resposta com a mensagem de sucesso e o usuário atualizado
+      return reply
+        .code(200)
+        .send({ message: 'Usuário atualizado com sucesso.' })
     } catch (error) {
       console.error('Erro ao atualizar usuário:', error)
       // Enviar resposta de erro com código 400

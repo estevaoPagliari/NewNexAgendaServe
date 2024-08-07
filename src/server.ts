@@ -15,7 +15,7 @@ import { routertwilio } from '../routes/twilio'
 const app: FastifyInstance = fastify()
 app.register(cors, {
   origin: '*',
-  methods: ['GET', 'POST', 'DELETE'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
 })
 
 app.register(jwt, {

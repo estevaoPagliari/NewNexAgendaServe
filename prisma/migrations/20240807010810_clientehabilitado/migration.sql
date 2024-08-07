@@ -31,6 +31,7 @@ CREATE TABLE "UserCliente" (
     "senha" TEXT NOT NULL,
     "cpf" TEXT NOT NULL,
     "telefone" TEXT NOT NULL,
+    "habilitado" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

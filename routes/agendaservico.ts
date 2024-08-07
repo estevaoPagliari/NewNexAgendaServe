@@ -3,7 +3,10 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import { z } from 'zod'
-// import axios from 'axios'
+import axios from 'axios'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { toZonedTime } from 'date-fns-tz'
 
 export async function agendaservicoRoutes(app: FastifyInstance) {
   app.get('/agendaservico', async (request, reply) => {
@@ -283,6 +286,19 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           .send({ message: 'Você já tem um agendamentos neste horário.' })
       }
 
+      const verificarhabilitado = await prisma.userCliente.findUnique({
+        where: {
+          id: clienteId,
+        },
+      })
+
+      if (verificarhabilitado?.habilitado === false) {
+        return reply.code(400).send({
+          message:
+            'Atenção, você esta bloqueado para agendar, entrar em contato via telefone',
+        })
+      }
+
       const newAgenda = await prisma.agenda.create({
         data: {
           dia,
@@ -295,18 +311,36 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           recursoId,
         },
       })
-      /**
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const twilioResponse = await axios.post(
-        `${process.env.API_BASE_URL}/twilioid`,
-        {
-          id: clienteId,
-        },
-      )
 
-      console.log(verificar)
-       */
-      // Enviar resposta com o novo usuário criado
+      // Fazer a requisição à rota /facebook para enviar a mensagem ao usuário
+      try {
+        console.log(verificarhabilitado?.telefone)
+        const response = await axios.post(
+          `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
+          {
+            messaging_product: 'whatsapp',
+            to: `55${verificarhabilitado?.telefone}`, // Inclui o código do país
+            type: 'template',
+            template: {
+              name: 'confirmacaoagenda',
+              language: {
+                code: 'pt_BR',
+              },
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+
+        console.log('Mensagem enviada com sucesso:', response.data)
+      } catch (error) {
+        console.error('Erro ao enviar mensagem via Facebook API:', error)
+      }
+
       return reply.code(201).send(newAgenda)
     } catch (error) {
       console.error('Erro ao criar usuário:', error)
@@ -434,7 +468,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       })
       const { phone } = bodySchema.parse(request.body)
 
-      const result = prisma.userCliente.findMany({
+      const result = await prisma.userCliente.findMany({
         where: {
           telefone: phone,
         },
@@ -455,29 +489,42 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         },
       })
 
-      const user = (await result).find((user) => user.telefone === phone)
+      const user = result.find((user) => user.telefone === phone)
 
-      if (result && (await result).length > 0) {
+      if (result && result.length > 0) {
         // Filtrar a agenda para incluir apenas eventos a partir de hoje
-        const today = new Date()
+        const today = toZonedTime(new Date(), 'America/Sao_Paulo')
+        today.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
+        console.log(today)
+
         const upcomingAgenda = user?.Agenda.filter((evento) => {
-          const eventDate = new Date(evento.ano, evento.mes - 1, evento.dia)
+          const eventDate = toZonedTime(
+            new Date(evento.ano, evento.mes - 1, evento.dia),
+            'America/Sao_Paulo',
+          )
+          eventDate.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
           return eventDate >= today
         })
 
-        // Concatenar os detalhes da agenda
+        // Concatenar os detalhes da agenda com formatação de data
         const agendaText = upcomingAgenda
           ?.map((evento) => {
-            return ` ${evento.dia}/${evento.mes}/${evento.ano} - ${evento.horario}, no campo: ${evento.Recurso.nome} \n`
+            const eventDate = toZonedTime(
+              new Date(evento.ano, evento.mes - 1, evento.dia),
+              'America/Sao_Paulo',
+            )
+            const formattedDate = format(eventDate, 'dd/MM/yyyy', {
+              locale: ptBR,
+            })
+            return `${formattedDate} - ${evento.horario}, no campo: ${evento.Recurso.nome}\n`
           })
-          .join() // Default para string vazia se undefined
+          .join('') // Default para string vazia se undefined
 
         return reply.send({
           message: 'Pessoa Cadastrada',
           nome: user?.nome,
           email: user?.email,
           telefone: user?.telefone,
-          // agenda: upcomingAgenda,
           texto: agendaText,
         })
       } else {
