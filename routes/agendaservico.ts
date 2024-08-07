@@ -724,6 +724,40 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       if (!deleteAgenda) {
         return reply.code(404).send({ message: 'Recurso não encontrado.' })
       }
+      const userclient = await prisma.userCliente.findUnique({
+        where: {
+          id: deleteAgenda.clienteId,
+        },
+      })
+      // cliente horario vago
+      if (deleteAgenda.clienteId !== 1) {
+        try {
+          const response = await axios.post(
+            `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
+            {
+              messaging_product: 'whatsapp',
+              to: `55${userclient?.telefone}`, // Inclui o código do país
+              type: 'template',
+              template: {
+                name: 'cancelamentoagenda',
+                language: {
+                  code: 'pt_BR',
+                },
+              },
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          )
+
+          console.log('Mensagem enviada com sucesso:', response.data)
+        } catch (error) {
+          console.error('Erro ao enviar mensagem via Facebook API:', error)
+        }
+      }
 
       // Enviar resposta com o usuário excluído
       return reply.code(200).send(deleteAgenda)
@@ -785,6 +819,39 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           id,
         },
       })
+
+      const userclient = await prisma.userCliente.findUnique({
+        where: {
+          id: deleteAgenda.clienteId,
+        },
+      })
+
+      try {
+        const response = await axios.post(
+          `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
+          {
+            messaging_product: 'whatsapp',
+            to: `55${userclient?.telefone}`, // Inclui o código do país
+            type: 'template',
+            template: {
+              name: 'cancelamentoagenda',
+              language: {
+                code: 'pt_BR',
+              },
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+
+        console.log('Mensagem enviada com sucesso:', response.data)
+      } catch (error) {
+        console.error('Erro ao enviar mensagem via Facebook API:', error)
+      }
 
       // Enviar resposta com o agendamento excluído
       return reply.code(200).send(deleteAgenda)
