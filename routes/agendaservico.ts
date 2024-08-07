@@ -6,7 +6,6 @@ import { z } from 'zod'
 import axios from 'axios'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { toZonedTime } from 'date-fns-tz'
 
 export async function agendaservicoRoutes(app: FastifyInstance) {
   app.get('/agendaservico', async (request, reply) => {
@@ -493,15 +492,12 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
 
       if (result && result.length > 0) {
         // Filtrar a agenda para incluir apenas eventos a partir de hoje
-        const today = toZonedTime(new Date(), 'America/Sao_Paulo')
+        const today = new Date()
         today.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
 
         const upcomingAgenda = user?.Agenda.filter((evento) => {
-          const eventDate = toZonedTime(
-            new Date(evento.ano, evento.mes - 1, evento.dia),
-            'America/Sao_Paulo',
-          )
-          eventDate.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
+          const eventDate = new Date(evento.ano, evento.mes - 1, evento.dia)
+
           console.log('Dia Agendado' + eventDate)
           console.log('Dia server :' + today)
           return eventDate >= today
@@ -510,10 +506,8 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         // Concatenar os detalhes da agenda com formatação de data
         const agendaText = upcomingAgenda
           ?.map((evento) => {
-            const eventDate = toZonedTime(
-              new Date(evento.ano, evento.mes - 1, evento.dia),
-              'America/Sao_Paulo',
-            )
+            const eventDate = new Date(evento.ano, evento.mes - 1, evento.dia)
+
             const formattedDate = format(eventDate, 'dd/MM/yyyy', {
               locale: ptBR,
             })
