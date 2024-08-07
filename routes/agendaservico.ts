@@ -495,7 +495,6 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         // Filtrar a agenda para incluir apenas eventos a partir de hoje
         const today = toZonedTime(new Date(), 'America/Sao_Paulo')
         today.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
-        console.log(today)
 
         const upcomingAgenda = user?.Agenda.filter((evento) => {
           const eventDate = toZonedTime(
@@ -503,8 +502,8 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
             'America/Sao_Paulo',
           )
           eventDate.setHours(0, 0, 0, 0) // Elimina o horário, considerando apenas a data
-          console.log('Dia server :' + today)
           console.log('Dia Agendado' + eventDate)
+          console.log('Dia server :' + today)
           return eventDate >= today
         })
 
