@@ -108,29 +108,39 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
 
   app.post('/agendaservicopost', async (request, reply) => {
     const bodySchema = z.object({
-      id: z.number().optional(),
       nome: z.string().optional(),
       cpf: z.string().optional(),
       horario: z.string().optional(),
-      dia: z.number().optional(),
-      mes: z.number().optional(),
-      ano: z.number().optional(),
+      data: z
+        .string()
+        .refine((data) => {
+          // Validação simples para o formato dd/MM/yyyy
+          return /^\d{2}\/\d{2}\/\d{4}$/.test(data)
+        }, 'Formato de data inválido, deve ser dd/MM/yyyy')
+        .optional(),
       recursoId: z.number().optional(),
     })
 
     try {
-      const { id, nome, cpf, horario, dia, mes, ano, recursoId } =
-        bodySchema.parse(request.body)
+      const { nome, cpf, horario, data, recursoId } = bodySchema.parse(
+        request.body,
+      )
+
+      // Se a data for fornecida, divida-a em dia, mes e ano
+      let dia, mes, ano
+      if (data) {
+        ;[dia, mes, ano] = data.split('/').map(Number)
+      }
 
       const users = await prisma.agenda.findMany({
         where: {
-          dia,
-          mes,
-          ano,
+          ...(dia && mes && ano ? { dia, mes, ano } : {}),
           horario,
           recursoId,
           Cliente: {
-            id,
+            id: {
+              not: 2,
+            },
             nome,
             cpf,
           },
@@ -147,8 +157,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
           },
           Estabelecimento: {
             select: {
-              nome: true, // Substitua 'nome' pelos campos que você deseja incluir
-              // Adicione outros campos que você quer incluir
+              nome: true,
             },
           },
           Recurso: {

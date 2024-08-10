@@ -53,4 +53,91 @@ export async function horFunRoutes(app: FastifyInstance) {
       reply.code(400).send({ message: 'Erro ao buscar usuário.' })
     }
   })
+
+  app.patch('/horariofuncionamentoalterar', async (request, reply) => {
+    try {
+      // Definindo o schema para validação do corpo da requisição
+      const bodySchema = z.object({
+        id: z.number().int().positive('O ID deve ser um número positivo'),
+        horarioAbertura: z.string().optional(),
+        horarioAlmocoInicio: z.string().optional(),
+        horarioAlmocoFim: z.string().optional(),
+        horarioFechamento: z.string().optional(),
+        horarioAberturasabado: z.string().optional(),
+        horarioAlmocosabado: z.string().optional(),
+        horarioFechamentosabado: z.string().optional(),
+      })
+      const {
+        id,
+        horarioAbertura,
+        horarioAlmocoInicio,
+        horarioAlmocoFim,
+        horarioFechamento,
+        horarioAberturasabado,
+        horarioAlmocosabado,
+        horarioFechamentosabado,
+      } = bodySchema.parse(request.body)
+      // Validando e extraindo dados do corpo da requisição
+
+      // Função para comparar horários
+      const compareHorarios = (horarioA: string, horarioB: string): number => {
+        const [hA, mA] = horarioA.split(':').map(Number)
+        const [hB, mB] = horarioB.split(':').map(Number)
+        return hA * 60 + mA - (hB * 60 + mB)
+      }
+
+      // Validação personalizada
+      if (
+        horarioAbertura &&
+        horarioFechamento &&
+        compareHorarios(horarioAbertura, horarioFechamento) >= 0
+      ) {
+        return reply.code(400).send({
+          error:
+            'O horário de abertura não pode ser maior ou igual ao horário de fechamento.',
+        })
+      }
+
+      if (
+        horarioAberturasabado &&
+        horarioFechamentosabado &&
+        compareHorarios(horarioAberturasabado, horarioFechamentosabado) >= 0
+      ) {
+        return reply.code(400).send({
+          error:
+            'O horário de abertura de sábado não pode ser maior ou igual ao horário de fechamento de sábado.',
+        })
+      }
+
+      if (
+        horarioAlmocoInicio &&
+        horarioAlmocoFim &&
+        compareHorarios(horarioAlmocoInicio, horarioAlmocoFim) >= 0
+      ) {
+        return reply.code(400).send({
+          error:
+            'O horário de início do almoço não pode ser maior ou igual ao horário de fim do almoço.',
+        })
+      }
+
+      // Atualização no banco de dados
+      const horario = await prisma.horarioFuncionamento.update({
+        where: { id },
+        data: {
+          horarioAbertura,
+          horarioAlmocoInicio,
+          horarioAlmocoFim,
+          horarioFechamento,
+          horarioAberturasabado,
+          horarioAlmocosabado,
+          horarioFechamentosabado,
+        },
+      })
+      console.log(horario)
+      return reply.code(200).send({ message: 'Horario atualizado' })
+    } catch (error) {
+      console.error('Erro ao atualizar horário:', error)
+      return reply.code(400).send({ error })
+    }
+  })
 }
