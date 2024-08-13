@@ -263,49 +263,58 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
 
       // Criar um novo usuário no banco de dados
       // verificar se tem mais de 2 agendamentos no dia
-      const verificar = await prisma.agenda.findMany({
-        where: {
-          dia,
-          mes,
-          ano,
-          clienteId,
-        },
-      })
-
-      if (verificar.length >= 2) {
-        return reply
-          .code(400)
-          .send({ message: 'Você já tem 2 agendamentos neste dia.' })
-      }
-      // verificar se tem um agendamento no mesmo horario
-      const verificarhorario = await prisma.agenda.findMany({
-        where: {
-          dia,
-          mes,
-          ano,
-          horario,
-          clienteId,
-        },
-      })
-
-      if (verificarhorario.length >= 1) {
-        return reply
-          .code(400)
-          .send({ message: 'Você já tem um agendamentos neste horário.' })
+      if (clienteId !== 2) {
+        const verificar = await prisma.agenda.findMany({
+          where: {
+            dia,
+            mes,
+            ano,
+            clienteId,
+          },
+        })
+        if (verificar.length >= 2) {
+          return reply
+            .code(400)
+            .send({ message: 'Você já tem 2 agendamentos neste dia.' })
+        }
       }
 
-      const verificarhabilitado = await prisma.userCliente.findUnique({
+      if (clienteId !== 2) {
+        const verificarhorario = await prisma.agenda.findMany({
+          where: {
+            dia,
+            mes,
+            ano,
+            horario,
+            clienteId,
+          },
+        })
+
+        if (verificarhorario.length >= 1) {
+          return reply
+            .code(400)
+            .send({ message: 'Você já tem um agendamento neste horário.' })
+        }
+
+        const verificarhabilitado = await prisma.userCliente.findUnique({
+          where: {
+            id: clienteId,
+          },
+        })
+
+        if (verificarhabilitado?.habilitado === false) {
+          return reply.code(400).send({
+            message:
+              'Atenção, você está bloqueado para agendar, entrar em contato via telefone',
+          })
+        }
+      }
+
+      const whatsapp = await prisma.userCliente.findUnique({
         where: {
           id: clienteId,
         },
       })
-
-      if (verificarhabilitado?.habilitado === false) {
-        return reply.code(400).send({
-          message:
-            'Atenção, você esta bloqueado para agendar, entrar em contato via telefone',
-        })
-      }
 
       const newAgenda = await prisma.agenda.create({
         data: {
@@ -322,29 +331,30 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
 
       // Fazer a requisição à rota /facebook para enviar a mensagem ao usuário
       try {
-        console.log(verificarhabilitado?.telefone)
-        const response = await axios.post(
-          `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
-          {
-            messaging_product: 'whatsapp',
-            to: `55${verificarhabilitado?.telefone}`, // Inclui o código do país
-            type: 'template',
-            template: {
-              name: 'confirmacaoagenda',
-              language: {
-                code: 'pt_BR',
+        if (whatsapp?.id !== 2) {
+          const response = await axios.post(
+            `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
+            {
+              messaging_product: 'whatsapp',
+              to: `55${whatsapp?.telefone}`, // Inclui o código do país
+              type: 'template',
+              template: {
+                name: 'confirmacaoagenda',
+                language: {
+                  code: 'pt_BR',
+                },
               },
             },
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
-              'Content-Type': 'application/json',
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.FACEBOOK_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+              },
             },
-          },
-        )
+          )
 
-        console.log('Mensagem enviada com sucesso:', response.data)
+          console.log('Mensagem enviada com sucesso:', response.data)
+        }
       } catch (error) {
         console.error('Erro ao enviar mensagem via Facebook API:', error)
       }
@@ -554,6 +564,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         clienteId: z.number(),
         recursoId: z.number(),
         recursoId2: z.number(),
+        DiaSemana: z.string(),
       })
 
       const {
@@ -565,8 +576,9 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         clienteId,
         recursoId,
         recursoId2,
+        DiaSemana,
       } = bodySchema.parse(request.body)
-
+      console.log(DiaSemana)
       const existingAgendas = await prisma.agenda.findMany({
         where: {
           dia,
@@ -587,10 +599,16 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       const resulthorario = await prisma.horarioFuncionamento.findMany({
         where: { id: 1 },
       })
-
+      let horarioAbertura = ''
+      let horarioFechamento = ''
       if (resulthorario.length > 0) {
-        const horarioAbertura = resulthorario[0].horarioAbertura // String "HH:mm"
-        const horarioFechamento = resulthorario[0].horarioFechamento // String "HH:mm"
+        if (DiaSemana !== 'sábado') {
+          horarioAbertura = resulthorario[0].horarioAbertura // String "HH:mm"
+          horarioFechamento = resulthorario[0].horarioFechamento // String "HH:mm"
+        } else {
+          horarioAbertura = resulthorario[0].horarioAberturasabado // String "HH:mm"
+          horarioFechamento = resulthorario[0].horarioFechamentosabado // String "HH:mm"
+        }
 
         // Converte strings para objetos Date
         const [horaAbertura, minutoAbertura] = horarioAbertura
@@ -739,7 +757,7 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
         },
       })
       // cliente horario vago
-      if (deleteAgenda.clienteId !== 1) {
+      if (deleteAgenda.clienteId !== 2) {
         try {
           const response = await axios.post(
             `https://graph.facebook.com/v20.0/${process.env.FACEBOOK_PHONE_NUMBER_ID}/messages`,
