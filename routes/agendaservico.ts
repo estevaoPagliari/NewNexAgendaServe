@@ -438,7 +438,6 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
       })
 
       const { id } = bodySchema.parse(request.body)
-
       const today = new Date() // Obtém a data atual
       console.log(today)
       today.setHours(0, 0, 0, 0) // Define a hora para 00:00:00 para considerar apenas a data
@@ -451,11 +450,6 @@ export async function agendaservicoRoutes(app: FastifyInstance) {
               dia: { gte: today.getDate() },
               mes: { gte: today.getMonth() + 1 },
               ano: { gte: today.getFullYear() },
-            },
-            {
-              createdAt: {
-                gte: today, // Filtra agendas com data maior ou igual à data atual
-              },
             },
           ],
         },
